@@ -1,36 +1,41 @@
-from flask import Flask, render_template, request
-import smtplib
+from flask import Flask, render_template, request, redirect
 import random
+import string
 app = Flask(__name__)
+shortened_url = {}
 
-@app.route("/", methods=["GET"])
-def home():
+def shortenUrl():
+    chars = string.ascii_letters + string.digits
+    short_url = "".join(random.choice(chars) for _ in range(6))
+    return short_url
+
+
+
+@app.route("/", methods=["GET","POST"])
+def index():
+    if request.method == "POST":
+        long_url = request.form["url"]
+        short_url = shortenUrl()
+        while short_url in shortened_url:
+            short_url = shortenUrl()
+        shortened_url[short_url] = long_url
+        print(shortened_url)
+        return f"Shortened URL: {request.url_root}tinyurl?url={short_url}"
+    
     return render_template("index.html")
 
-@app.route("/submit",methods=["POST"])
-def sendOtp():
-    global otp
-    otp = random.randint(99999,1000000)
-    email = "suja71449@gmail.com"
-    receiver_email = request.form['email']
-    subject = "OTP Verification"
-    message = str(otp)+" is your verification code."
-    text = f"Subject: {subject}\n\n{message}"
-    server = smtplib. SMTP("smtp.gmail.com", 587)
-    server.starttls()
-    server.login (email, "dlnhwaurwfbsgrfm")
-    server.sendmail(email, receiver_email, text)
-    return render_template("verify.html")
 
-@app.route("/verify",methods=["POST"])
-def verify():
-    otp_from_user = int(request.form['code'])
-    print("this from user"+str(otp_from_user)+"and this is actual otp"+str(otp))
-    if otp==otp_from_user:
-        return render_template("landing.html")
+@app.route("/tinyurl")
+def redirect_url():
+    short_url = request.args.get('url')
+    print(short_url)
+    print(shortened_url)
+    long_url = shortened_url.get(short_url)
+    print(long_url)
+    if long_url:
+        return redirect(long_url)
     else:
-        return render_template("error.html")
-
+        return "URL Not found : 404" 
 
 
 if __name__=="__main__":
